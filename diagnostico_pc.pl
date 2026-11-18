@@ -144,3 +144,67 @@ solucao(periferico_defeituoso, 'Teste o periferico em outro computador').
 
 componente_delicado(fonte).
 componente_delicado(hd).
+
+
+%  2. REGRAS LÓGICAS
+
+% REGRA 1: sintomas_do_problema(+Problema, -Lista)
+% Reúne todos os sintomas associados a um problema.
+
+sintomas_do_problema(Problema, Lista) :-
+    findall(S, indica(Problema, S), Lista).
+
+% REGRA 2: sintomas_confirmados(+Problema, +Informados, -Confirmados)
+% Sintomas do problema que o usuário realmente informou
+% (interseção entre os sintomas do problema e os informados).
+
+sintomas_confirmados(Problema, Informados, Confirmados) :-
+    sintomas_do_problema(Problema, Todos),
+    intersection(Todos, Informados, Confirmados).
+
+% REGRA 3: pontuacao(+Problema, +Informados, -Pontos, -Percentual)
+% Pontos     = quantos sintomas do problema foram confirmados.
+% Percentual = Pontos / total de sintomas do problema * 100.
+% Falha se nenhum sintoma bate (Pontos = 0).
+
+pontuacao(Problema, Informados, Pontos, Percentual) :-
+    sintomas_do_problema(Problema, Todos),
+    length(Todos, Total),
+    Total > 0,
+    sintomas_confirmados(Problema, Informados, Confirmados),
+    length(Confirmados, Pontos),
+    Pontos > 0,
+    Percentual is round(Pontos * 100 / Total).
+
+% REGRA 4: diagnostico(+Informados, ?Problema, -Pontos, -Percentual)
+% Todo problema que tenha ao menos um sintoma em comum
+% com os sintomas informados é um diagnóstico possível.
+
+diagnostico(Informados, Problema, Pontos, Percentual) :-
+    problema(Problema, _, _, _, _),
+    pontuacao(Problema, Informados, Pontos, Percentual).
+
+
+% REGRA 5: diagnostico_provavel(+Informados, ?Problema, -Percentual)
+% Um diagnóstico é PROVÁVEL se tiver 2 ou mais sintomas confirmados
+% OU se cobrir pelo menos 50% dos sintomas do problema.
+% (O "->" evita resultados duplicados quando as duas condições valem.)
+
+diagnostico_provavel(Informados, Problema, Percentual) :-
+    diagnostico(Informados, Problema, Pontos, Percentual),
+    (   Pontos >= 2
+    ->  true
+    ;   Percentual >= 50
+    ).
+
+% REGRA 6: ranking(+Informados, -Ranking)
+% Lista todos os diagnósticos possíveis ordenados do mais para o
+% menos provável. Cada item tem a forma Percentual-Pontos-Problema.
+% msort ordena do menor para o maior; reverse inverte a ordem.
+
+ranking(Informados, Ranking) :-
+    findall(Perc-Pontos-Problema,
+            diagnostico(Informados, Problema, Pontos, Perc),
+            Lista),
+    msort(Lista, Crescente),
+    reverse(Crescente, Ranking).
