@@ -208,3 +208,63 @@ ranking(Informados, Ranking) :-
             Lista),
     msort(Lista, Crescente),
     reverse(Crescente, Ranking).
+
+
+% REGRA 7: urgente(+Informados, ?Problema)
+% Diagnóstico provável de gravidade ALTA: exige atenção imediata.
+
+urgente(Informados, Problema) :-
+    diagnostico_provavel(Informados, Problema, _),
+    problema(Problema, _, _, _, alta).
+
+% REGRA 8: componentes_suspeitos(+Informados, -Componentes)
+% Componentes envolvidos nos diagnósticos prováveis (sem repetição).
+
+componentes_suspeitos(Informados, Componentes) :-
+    findall(C,
+            ( diagnostico_provavel(Informados, P, _),
+              problema(P, _, _, C, _) ),
+            Bruto),
+    sort(Bruto, Componentes).
+
+% REGRA 9: precisa_tecnico(?Problema)
+% Problema de hardware, de gravidade alta, em componente delicado.
+
+precisa_tecnico(Problema) :-
+    problema(Problema, _, hardware, Componente, alta),
+    componente_delicado(Componente).
+
+% REGRA 10: sintomas_em_comum(?P1, ?P2, -Comuns)
+% Sintomas compartilhados por dois problemas diferentes
+% (mostra por que é difícil distingui-los).
+
+sintomas_em_comum(P1, P2, Comuns) :-
+    problema(P1, _, _, _, _),
+    problema(P2, _, _, _, _),
+    P1 \== P2,
+    sintomas_do_problema(P1, L1),
+    sintomas_do_problema(P2, L2),
+    intersection(L1, L2, Comuns),
+    Comuns \== [].
+
+% REGRA 11: sintoma_ambiguo(?Sintoma)
+% Sintoma que pode ser causado por mais de um problema.
+
+sintoma_ambiguo(Sintoma) :-
+    sintoma(Sintoma, _),
+    findall(P, indica(P, Sintoma), Causas),
+    length(Causas, N),
+    N > 1.
+
+% REGRA 12: sintoma_critico(?Sintoma)
+% Sintoma que pode indicar um problema de gravidade ALTA.
+
+sintoma_critico(Sintoma) :-
+    indica(Problema, Sintoma),
+    problema(Problema, _, _, _, alta).
+
+% REGRA 13: problemas_da_categoria(+Categoria, -Lista)
+% Lista os problemas de uma categoria (hardware, software, rede).
+
+problemas_da_categoria(Categoria, Lista) :-
+    findall(P, problema(P, _, Categoria, _, _), Lista).
